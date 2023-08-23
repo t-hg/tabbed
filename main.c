@@ -8,14 +8,15 @@
 
 
 void select_window(Display *display, Window root) {
+  fprintf(stdout, "Select window...\n");
   Cursor cursor = XCreateFontCursor(display, XC_hand1);
-  int status = XGrabPointer(display, root, false, ButtonReleaseMask, GrabModeSync, GrabModeAsync, root, cursor, CurrentTime);
+  int status = XGrabPointer(display, root, false, ButtonReleaseMask, GrabModeSync, GrabModeAsync, root, cursor, CurrentTime); 
 
   if (status != GrabSuccess) {
     fprintf(stderr, "Can't grab the mouse.\n");
     exit(1);
   }
-
+ 
   XEvent event;
   Window win = 0L;
   XAllowEvents(display, SyncPointer, CurrentTime);
@@ -23,12 +24,12 @@ void select_window(Display *display, Window root) {
 
   switch (event.type) {
     case ButtonRelease: {
-        fprintf(stdout, "ButtonRelease");
+        fprintf(stdout, "ButtonRelease\n");
 	      win = event.xbutton.subwindow;
     } break;
     default: {
     } break;
-  }
+  } 
 
   XUngrabPointer(display, CurrentTime);
   fprintf(stdout, "Selected window: %d\n", win);
@@ -50,10 +51,10 @@ int main() {
   Window win = XCreateSimpleWindow(display, root, 0, 0, 300, 300, 0, 0, 0);
   XSetWMProtocols(display, win, &wmDeleteWindowAtom, 1);
   XMapRaised(display, win);
-
+  
   bool running = true;
   XEvent event;
-  XSelectInput(display, win, SubstructureNotifyMask);
+  XSelectInput(display, win, SubstructureNotifyMask | KeyPressMask);
 
   while(running) {
     XNextEvent(display, &event);
@@ -64,15 +65,21 @@ int main() {
           running = false;
         }
       } break;
+      case KeyPress: {
+        int keycode = event.xkey.keycode;
+        int state = event.xkey.state;
+        fprintf(stdout, "KeyCode: %d, State: %d\n", keycode, state);
+        if (keycode == 42 && state == 8) {
+          // alt-g
+          select_window(display, root);
+        }
+      } break;
       default: {
       } break;
     }
   }
 
   XDestroyWindow(display, win);
-
-  select_window(display, root);
-
   XCloseDisplay(display);
   return 0;
 }
